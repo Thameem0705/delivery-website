@@ -4,7 +4,7 @@ import { Outlet, useNavigate, useLocation, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import {
     LogOut, Package, LayoutDashboard, Truck, User,
-    Menu, X, List, Plus, ChevronLeft, ChevronRight
+    Menu, X, List, Plus, Users, ChevronLeft, ChevronRight
 } from 'lucide-react'
 
 export default function Layout() {
@@ -41,7 +41,7 @@ export default function Layout() {
             { name: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
             { name: 'Task List', href: '/admin/tasks', icon: List },
             { name: 'New Task', href: '/admin/create', icon: Plus },
-            { name: 'Delivery Team', href: '/admin/users', icon: User },
+            { name: 'Delivery Team', href: '/admin/users', icon: Users },
         ] : [
             // Delivery Links
             { name: 'My Deliveries', href: '/delivery', icon: Truck },

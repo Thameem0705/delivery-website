@@ -1,7 +1,8 @@
 
 import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabaseClient'
-import { MapPin, Truck, Search, Filter, AlertCircle, Calendar, Pencil, Save, X as XIcon } from 'lucide-react' // XIcon renamed to avoid confusion if we needed it, but we won't use it for close
+import { MapPin, Truck, Search, Filter, AlertCircle, Calendar, Pencil, Trash2 } from 'lucide-react'
+import toast, { Toaster } from 'react-hot-toast'
 
 export default function TaskList() {
     const [tasks, setTasks] = useState([])
@@ -82,45 +83,41 @@ export default function TaskList() {
         if (!editingTask) return
         setIsSaving(true)
         try {
-            // Generate new Google Maps URL if address changes
             const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(formData.location_address)}`
-
             const { error } = await supabase
                 .from('tasks')
-                .update({
-                    title: formData.title,
-                    description: formData.description,
-                    location_address: formData.location_address,
-                    google_maps_url: mapsUrl // Update map link
-                })
+                .update({ title: formData.title, description: formData.description, location_address: formData.location_address, google_maps_url: mapsUrl })
                 .eq('id', editingTask.id)
-
             if (error) throw error
-
-            // Optimistic update
-            const updatedTask = {
-                ...editingTask,
-                ...formData,
-                google_maps_url: mapsUrl
-            }
-
-            setTasks(prev => prev.map(t =>
-                t.id === editingTask.id ? updatedTask : t
-            ))
-
+            const updatedTask = { ...editingTask, ...formData, google_maps_url: mapsUrl }
+            setTasks(prev => prev.map(t => t.id === editingTask.id ? updatedTask : t))
             setEditingTask(null)
-            // toast.success('Task updated successfully') // Optional: add toast if we import it
+            toast.success('Task updated!')
         } catch (error) {
-            console.error('Error updating task:', error)
-            alert('Failed to update task')
+            toast.error('Failed to update task')
         } finally {
             setIsSaving(false)
         }
     }
 
+    const handleDelete = async (taskId) => {
+        if (!window.confirm('Delete this task? This cannot be undone.')) return
+        try {
+            const { error } = await supabase.from('tasks').delete().eq('id', taskId)
+            if (error) throw error
+            setTasks(prev => prev.filter(t => t.id !== taskId))
+            toast.success('Task deleted')
+        } catch {
+            toast.error('Failed to delete task')
+        }
+    }
+
     return (
         <div className="w-full max-w-7xl mx-auto space-y-6 animate-fadeIn relative">
-            <h2 className="text-2xl font-bold mb-4">Task Management</h2>
+            <Toaster position="top-right" />
+            <h2 className="text-2xl font-bold mb-4">Task Management
+                <span className="ml-3 text-sm font-normal px-2.5 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">{filteredTasks.length} tasks</span>
+            </h2>
 
             {/* Toolbar */}
             <div className="flex flex-col sm:flex-row gap-4 justify-between bg-slate-800/30 p-4 rounded-xl border border-white/5 backdrop-blur-sm">
@@ -174,14 +171,23 @@ export default function TaskList() {
                             <p className="text-sm text-gray-400 mb-6 line-clamp-2 min-h-[2.5em]">{task.description || 'No description provided.'}</p>
                         </div>
 
-                        {/* Edit Button (Absolute) */}
-                        <button
-                            onClick={() => handleEditClick(task)}
-                            className="absolute top-4 right-4 p-2 rounded-lg bg-white/5 hover:bg-primary hover:text-white text-gray-400 transition-all opacity-0 group-hover:opacity-100"
-                            title="Edit Task"
-                        >
-                            <Pencil size={16} />
-                        </button>
+                        {/* Buttons */}
+                        <div className="absolute top-4 right-4 flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                            <button
+                                onClick={() => handleEditClick(task)}
+                                className="p-2 rounded-lg bg-white/5 hover:bg-primary hover:text-white text-gray-400 transition-all"
+                                title="Edit Task"
+                            >
+                                <Pencil size={15} />
+                            </button>
+                            <button
+                                onClick={() => handleDelete(task.id)}
+                                className="p-2 rounded-lg bg-white/5 hover:bg-red-500 hover:text-white text-gray-400 transition-all"
+                                title="Delete Task"
+                            >
+                                <Trash2 size={15} />
+                            </button>
+                        </div>
 
                         {/* Footer Info */}
                         <div className="mt-auto border-t border-white/5 pt-4 space-y-3">
