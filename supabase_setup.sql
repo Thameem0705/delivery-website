@@ -8,9 +8,15 @@ create table public.profiles (
   username text unique,
   role text default 'delivery' check (role in ('admin', 'delivery')),
   full_name text,
+  phone_number text,
+  address text,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   primary key (id)
 );
+
+-- NOTE: If the profiles table already exists, run these ALTER TABLE commands instead:
+-- alter table public.profiles add column if not exists phone_number text;
+-- alter table public.profiles add column if not exists address text;
 
 -- Enable RLS for profiles
 alter table public.profiles enable row level security;
@@ -83,13 +89,15 @@ language plpgsql
 security definer set search_path = public
 as $$
 begin
-  insert into public.profiles (id, email, username, role, full_name)
+  insert into public.profiles (id, email, username, role, full_name, phone_number, address)
   values (
-    new.id, 
-    new.email, 
+    new.id,
+    coalesce(new.raw_user_meta_data->>'real_email', new.email),
     new.raw_user_meta_data->>'username',
-    'delivery', 
-    new.raw_user_meta_data->>'full_name'
+    'delivery',
+    new.raw_user_meta_data->>'full_name',
+    new.raw_user_meta_data->>'phone_number',
+    new.raw_user_meta_data->>'address'
   );
   return new;
 end;

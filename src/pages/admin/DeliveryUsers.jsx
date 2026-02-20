@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabaseClient'
-import { User, Search, Mail, Calendar, Hash, Truck } from 'lucide-react'
+import { User, Search, Mail, Calendar, Hash, Truck, Phone, MapPin } from 'lucide-react'
 import { Toaster } from 'react-hot-toast'
 
 export default function DeliveryUsers() {
@@ -149,15 +149,12 @@ export default function DeliveryUsers() {
                                     </div>
                                 </div>
 
-                                {/* Details Cards - The Requested "Reference Image" Style */}
+                                {/* Details Cards */}
                                 <div className="space-y-4 mt-auto">
-                                    {/* Email Card - Left Border Style */}
+                                    {/* Email Card */}
                                     <div
                                         className="relative bg-white/[0.03] rounded-r-xl rounded-l-sm p-4 flex items-center gap-3 transition-all duration-300 group/item hover:bg-white/[0.05] hover:translate-x-1"
-                                        style={{
-                                            borderLeft: '5px solid #10b981', // Emerald 500
-                                            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-                                        }}
+                                        style={{ borderLeft: '5px solid #10b981', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}
                                     >
                                         <div className="p-2 bg-blue-500/10 rounded-lg text-blue-400 border border-blue-500/10 shrink-0 group-hover/item:text-white group-hover/item:bg-blue-500 transition-all duration-300">
                                             <Mail size={16} />
@@ -165,18 +162,47 @@ export default function DeliveryUsers() {
                                         <div className="flex flex-col min-w-0">
                                             <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider leading-none mb-1">Email</span>
                                             <span className="text-sm text-slate-300 truncate font-medium group-hover/item:text-white transition-colors">
-                                                {user.email}
+                                                {user.email || '—'}
                                             </span>
                                         </div>
                                     </div>
 
-                                    {/* Joined Date Card - Left Border Style */}
+                                    {/* Phone Card */}
                                     <div
                                         className="relative bg-white/[0.03] rounded-r-xl rounded-l-sm p-4 flex items-center gap-3 transition-all duration-300 group/item hover:bg-white/[0.05] hover:translate-x-1"
-                                        style={{
-                                            borderLeft: '5px solid #10b981', // Emerald 500
-                                            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-                                        }}
+                                        style={{ borderLeft: '5px solid #10b981', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}
+                                    >
+                                        <div className="p-2 bg-green-500/10 rounded-lg text-green-400 border border-green-500/10 shrink-0 group-hover/item:text-white group-hover/item:bg-green-500 transition-all duration-300">
+                                            <Phone size={16} />
+                                        </div>
+                                        <div className="flex flex-col min-w-0">
+                                            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider leading-none mb-1">Phone</span>
+                                            <span className="text-sm text-slate-300 truncate font-medium group-hover/item:text-white transition-colors">
+                                                {user.phone_number || '—'}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    {/* Address Card */}
+                                    <div
+                                        className="relative bg-white/[0.03] rounded-r-xl rounded-l-sm p-4 flex items-center gap-3 transition-all duration-300 group/item hover:bg-white/[0.05] hover:translate-x-1"
+                                        style={{ borderLeft: '5px solid #10b981', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}
+                                    >
+                                        <div className="p-2 bg-orange-500/10 rounded-lg text-orange-400 border border-orange-500/10 shrink-0 group-hover/item:text-white group-hover/item:bg-orange-500 transition-all duration-300">
+                                            <MapPin size={16} />
+                                        </div>
+                                        <div className="flex flex-col min-w-0">
+                                            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider leading-none mb-1">Address</span>
+                                            <span className="text-sm text-slate-300 font-medium group-hover/item:text-white transition-colors" style={{ wordBreak: 'break-word' }}>
+                                                {user.address || '—'}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    {/* Joined Date Card */}
+                                    <div
+                                        className="relative bg-white/[0.03] rounded-r-xl rounded-l-sm p-4 flex items-center gap-3 transition-all duration-300 group/item hover:bg-white/[0.05] hover:translate-x-1"
+                                        style={{ borderLeft: '5px solid #10b981', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}
                                     >
                                         <div className="p-2 bg-purple-500/10 rounded-lg text-purple-400 border border-purple-500/10 shrink-0 group-hover/item:text-white group-hover/item:bg-purple-500 transition-all duration-300">
                                             <Calendar size={16} />

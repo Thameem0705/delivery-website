@@ -9,6 +9,9 @@ export default function Login() {
     const [username, setUsername] = useState('')
     const [password, setPassword] = useState('')
     const [fullName, setFullName] = useState('')
+    const [realEmail, setRealEmail] = useState('')
+    const [phoneNumber, setPhoneNumber] = useState('')
+    const [address, setAddress] = useState('')
     const [isSignUp, setIsSignUp] = useState(false)
     const navigate = useNavigate()
 
@@ -24,27 +27,35 @@ export default function Login() {
             return
         }
 
-        // Append dummy domain to username to create a valid email format for Supabase
-        const email = `${username}@delivery.local`
+        // Append dummy domain to username to create a valid email format for Supabase Auth
+        const authEmail = `${username}@delivery.local`
 
         try {
             if (isSignUp) {
                 const { error } = await supabase.auth.signUp({
-                    email,
+                    email: authEmail,
                     password,
                     options: {
                         data: {
                             full_name: fullName,
                             username: username,
+                            real_email: realEmail,
+                            phone_number: phoneNumber,
+                            address: address,
                         },
                     },
                 })
                 if (error) throw error
                 toast.success('Signup successful! You can now log in.')
                 setIsSignUp(false)
+                // Reset signup fields
+                setFullName('')
+                setRealEmail('')
+                setPhoneNumber('')
+                setAddress('')
             } else {
                 const { error } = await supabase.auth.signInWithPassword({
-                    email,
+                    email: authEmail,
                     password,
                 })
                 if (error) throw error
@@ -82,17 +93,56 @@ export default function Login() {
 
                     <form onSubmit={handleAuth} className="auth-form">
                         {isSignUp && (
-                            <div className="form-group">
-                                <label>Full Name</label>
-                                <input
-                                    type="text"
-                                    placeholder="John Doe"
-                                    className="input-field"
-                                    value={fullName}
-                                    onChange={(e) => setFullName(e.target.value)}
-                                    required
-                                />
-                            </div>
+                            <>
+                                <div className="form-group">
+                                    <label>Full Name</label>
+                                    <input
+                                        type="text"
+                                        placeholder="John Doe"
+                                        className="input-field"
+                                        value={fullName}
+                                        onChange={(e) => setFullName(e.target.value)}
+                                        required
+                                    />
+                                </div>
+
+                                <div className="form-group">
+                                    <label>Email Address</label>
+                                    <input
+                                        type="email"
+                                        placeholder="john@example.com"
+                                        className="input-field"
+                                        value={realEmail}
+                                        onChange={(e) => setRealEmail(e.target.value)}
+                                        required
+                                    />
+                                </div>
+
+                                <div className="form-group">
+                                    <label>Phone Number</label>
+                                    <input
+                                        type="tel"
+                                        placeholder="+91 9876543210"
+                                        className="input-field"
+                                        value={phoneNumber}
+                                        onChange={(e) => setPhoneNumber(e.target.value)}
+                                        required
+                                    />
+                                </div>
+
+                                <div className="form-group">
+                                    <label>Address</label>
+                                    <textarea
+                                        placeholder="123 Main St, City, State"
+                                        className="input-field"
+                                        value={address}
+                                        onChange={(e) => setAddress(e.target.value)}
+                                        required
+                                        rows={2}
+                                        style={{ resize: 'vertical', fontFamily: 'inherit' }}
+                                    />
+                                </div>
+                            </>
                         )}
 
                         <div className="form-group">
