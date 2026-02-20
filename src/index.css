@@ -190,10 +190,16 @@ label {
   width: 100%;
   max-width: 1200px;
   margin: 0 auto;
-  padding: 2rem;
+  padding: 1rem;
   text-align: left;
   animation: fadeIn 0.4s ease-out;
   flex: 1;
+}
+
+@media (min-width: 640px) {
+  .page-container {
+    padding: 2rem;
+  }
 }
 
 .flex-center {
@@ -260,18 +266,32 @@ h6 {
 }
 
 h1 {
-  font-size: 2.5rem;
+  font-size: 1.75rem;
   margin-bottom: 1rem;
 }
 
 h2 {
-  font-size: 2rem;
+  font-size: 1.5rem;
   margin-bottom: 0.75rem;
 }
 
 h3 {
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   margin-bottom: 0.5rem;
+}
+
+@media (min-width: 640px) {
+  h1 {
+    font-size: 2.5rem;
+  }
+
+  h2 {
+    font-size: 2rem;
+  }
+
+  h3 {
+    font-size: 1.5rem;
+  }
 }
 
 .text-primary {
@@ -1167,6 +1187,34 @@ h3 {
 
   .sm\:block {
     display: block !important;
+  }
+
+  .sm\:grid-cols-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Stats Grid — collapses on mobile */
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+@media (min-width: 480px) {
+  .stats-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* Login card responsive padding */
+.login-card {
+  padding: 1.5rem !important;
+}
+
+@media (min-width: 480px) {
+  .login-card {
+    padding: 3rem !important;
   }
 }
 

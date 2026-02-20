@@ -54,7 +54,7 @@ export default function CreateTask() {
         <div className="w-full max-w-3xl mx-auto animate-fadeSlideUp">
             <Toaster position="top-right" />
 
-            <div className="glass-panel p-8">
+            <div className="glass-panel p-4" style={{ paddingInline: 'clamp(1rem, 5vw, 2rem)' }}>
                 <h3 className="flex items-center gap-3 mb-8 text-2xl font-bold">
                     <div className="bg-primary p-2.5 rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
                         <Plus size={24} color="white" />
@@ -120,7 +120,7 @@ export default function CreateTask() {
                         </div>
                     </div>
 
-                    <div className="pt-10 border-t border-white/5 mt-12 grid grid-cols-2 gap-16">
+                    <div className="pt-6 border-t border-white/5 mt-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <button
                             type="button"
                             onClick={() => navigate('/admin/tasks')}

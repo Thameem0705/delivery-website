@@ -45,7 +45,7 @@ export default function AdminStats() {
 
             {/* Page Header */}
             <div>
-                <h2 className="text-3xl font-bold flex items-center gap-3">
+                <h2 className="text-2xl font-bold flex items-center gap-3 flex-wrap">
                     <div className="bg-gradient-to-br from-indigo-500 to-purple-600 p-3 rounded-2xl shadow-xl shadow-purple-500/20">
                         <Activity size={28} className="text-white" />
                     </div>
@@ -53,7 +53,7 @@ export default function AdminStats() {
                         Dashboard Overview
                     </span>
                 </h2>
-                <p className="text-gray-400 mt-2 ml-16">Real-time insights into your delivery operations.</p>
+                <p className="text-gray-400 mt-2">Real-time insights into your delivery operations.</p>
             </div>
 
             {/* Stat Cards */}

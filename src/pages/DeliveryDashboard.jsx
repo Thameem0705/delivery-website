@@ -81,17 +81,17 @@ export default function DeliveryDashboard() {
 
             {/* Header */}
             <header style={{ marginBottom: '2rem' }}>
-                <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '2rem', marginBottom: '0.25rem' }}>
-                    <div style={{ background: 'linear-gradient(135deg, var(--primary), var(--accent-purple))', padding: '0.5rem', borderRadius: '0.75rem', display: 'flex' }}>
+                <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.25rem' }}>
+                    <div style={{ background: 'linear-gradient(135deg, var(--primary), var(--accent-purple))', padding: '0.5rem', borderRadius: '0.75rem', display: 'flex', flexShrink: 0 }}>
                         <Truck size={24} color="white" />
                     </div>
                     My Assignments
                 </h2>
-                <p style={{ color: 'var(--text-muted)', marginLeft: '3.5rem' }}>Track and manage your delivery tasks.</p>
+                <p style={{ color: 'var(--text-muted)', margin: '0.25rem 0 0 0' }}>Track and manage your delivery tasks.</p>
             </header>
 
             {/* Summary Stats Bar */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '2rem' }}>
+            <div className="stats-grid" style={{ marginBottom: '2rem' }}>
                 {[
                     { label: 'Total', value: tasks.length, icon: Package, color: '#6366f1' },
                     { label: 'Pending', value: pending, icon: Clock, color: '#f59e0b' },
@@ -139,7 +139,7 @@ export default function DeliveryDashboard() {
             <div style={{ display: 'grid', gap: '1.25rem' }}>
                 {filteredTasks.map(task => (
                     <div key={task.id} className="glass-panel" style={{
-                        padding: '1.75rem 2rem',
+                        padding: 'clamp(1rem, 4vw, 1.75rem)',
                         borderLeft: `5px solid ${task.status === 'completed' ? '#10b981' : '#f59e0b'}`,
                         position: 'relative',
                         overflow: 'hidden',
@@ -162,7 +162,7 @@ export default function DeliveryDashboard() {
                         </div>
 
                         {/* Title + date */}
-                        <div style={{ marginBottom: '0.75rem', paddingRight: '6rem' }}>
+                        <div style={{ marginBottom: '0.75rem', paddingRight: 'clamp(3rem, 8vw, 6rem)' }}>
                             <h3 style={{ margin: '0 0 0.35rem 0', fontSize: '1.3rem', fontWeight: 700 }}>{task.title}</h3>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                                 <Clock size={12} />
