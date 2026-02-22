@@ -653,6 +653,20 @@ export default function Login() {
                     )}
                 </div>
             </div>
+
+            <div style={{
+                position: 'fixed',
+                bottom: '1rem',
+                left: 0,
+                right: 0,
+                textAlign: 'center',
+                fontSize: '0.8rem',
+                color: 'rgba(255,255,255,0.4)',
+                pointerEvents: 'none',
+                zIndex: 50
+            }}>
+                &copy; {new Date().getFullYear()} Ansari-Karthi. All rights reserved.
+            </div>
         </div>
     )
 }

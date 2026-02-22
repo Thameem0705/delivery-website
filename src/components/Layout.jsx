@@ -287,6 +287,8 @@ export default function Layout() {
                 padding: '0.75rem',
                 minWidth: 0,
                 transition: 'margin-left 0.3s cubic-bezier(0.4,0,0.2,1)',
+                display: 'flex',
+                flexDirection: 'column'
             }}>
                 {/* Mobile top bar */}
                 {isMobile && (
@@ -313,6 +315,17 @@ export default function Layout() {
 
                 <div key={location.pathname} className="page-enter" style={{ flex: 1 }}>
                     <Outlet />
+                </div>
+
+                <div style={{
+                    marginTop: 'auto',
+                    paddingTop: '2rem',
+                    paddingBottom: '0.25rem',
+                    textAlign: 'center',
+                    fontSize: '0.8rem',
+                    color: 'var(--text-muted)',
+                }}>
+                    &copy; {new Date().getFullYear()} Ansari-Karthi. All rights reserved.
                 </div>
             </main>
         </div>
