@@ -4,7 +4,7 @@ import { Outlet, useNavigate, useLocation, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import {
     LogOut, Package, LayoutDashboard, Truck, User,
-    Menu, X, List, Plus, Users, ChevronLeft, ChevronRight
+    Menu, X, List, Plus, Users, ChevronLeft, ChevronRight, ShieldCheck
 } from 'lucide-react'
 
 export default function Layout() {
@@ -42,9 +42,11 @@ export default function Layout() {
             { name: 'Task List', href: '/admin/tasks', icon: List },
             { name: 'New Task', href: '/admin/create', icon: Plus },
             { name: 'Delivery Team', href: '/admin/users', icon: Users },
+            { name: 'Permissions', href: '/admin/permissions', icon: ShieldCheck },
         ] : [
             // Delivery Links
             { name: 'My Deliveries', href: '/delivery', icon: Truck },
+            { name: 'Permissions', href: '/delivery/permissions', icon: ShieldCheck },
         ]),
     ]
 
@@ -207,7 +209,7 @@ export default function Layout() {
                                 width: '100%',
                                 transition: 'all 0.2s'
                             }}
-                            className="hover:bg-white/10"
+                            className=""
                         >
                             {isSidebarCollapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
                         </button>
@@ -229,9 +231,18 @@ export default function Layout() {
                             alignItems: 'center',
                             justifyContent: 'center',
                             border: '1px solid var(--glass-border)',
-                            flexShrink: 0
+                            flexShrink: 0,
+                            overflow: 'hidden',
                         }}>
-                            <User size={18} />
+                            {profile?.avatar_url ? (
+                                <img
+                                    src={profile.avatar_url}
+                                    alt={profile.full_name}
+                                    style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top' }}
+                                />
+                            ) : (
+                                <User size={18} />
+                            )}
                         </div>
                         {(!isSidebarCollapsed || isMobile) && (
                             <div style={{ overflow: 'hidden' }}>
@@ -248,10 +259,35 @@ export default function Layout() {
                     {(!isSidebarCollapsed || isMobile) && (
                         <button
                             onClick={handleSignOut}
-                            className="btn-danger w-full"
-                            style={{ justifyContent: 'center' }}
+                            style={{
+                                width: '100%',
+                                boxSizing: 'border-box',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '0.5rem',
+                                padding: '0.65rem 1rem',
+                                borderRadius: '0.65rem',
+                                border: '1px solid rgba(239,68,68,0.35)',
+                                background: 'rgba(239,68,68,0.1)',
+                                color: '#f87171',
+                                cursor: 'pointer',
+                                fontWeight: 700,
+                                fontSize: '0.9rem',
+                                transition: 'all 0.2s',
+                            }}
+                            onMouseEnter={e => {
+                                e.currentTarget.style.background = 'rgba(239,68,68,0.22)'
+                                e.currentTarget.style.borderColor = 'rgba(239,68,68,0.6)'
+                                e.currentTarget.style.color = 'white'
+                            }}
+                            onMouseLeave={e => {
+                                e.currentTarget.style.background = 'rgba(239,68,68,0.1)'
+                                e.currentTarget.style.borderColor = 'rgba(239,68,68,0.35)'
+                                e.currentTarget.style.color = '#f87171'
+                            }}
                         >
-                            <LogOut size={18} />
+                            <LogOut size={17} />
                             Sign Out
                         </button>
                     )}
@@ -299,7 +335,9 @@ export default function Layout() {
                     </div>
                 )}
 
-                <Outlet />
+                <div key={location.pathname} className="page-enter" style={{ flex: 1 }}>
+                    <Outlet />
+                </div>
             </main>
         </div>
     )

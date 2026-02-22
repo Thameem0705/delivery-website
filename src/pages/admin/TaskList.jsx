@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabaseClient'
-import { MapPin, Truck, Search, Filter, AlertCircle, Calendar, Pencil, Trash2 } from 'lucide-react'
+import { MapPin, Truck, Search, Filter, AlertCircle, Calendar, Pencil, Trash2, User } from 'lucide-react'
 import toast, { Toaster } from 'react-hot-toast'
 
 export default function TaskList() {
@@ -9,18 +9,21 @@ export default function TaskList() {
     const [filteredTasks, setFilteredTasks] = useState([])
     const [searchQuery, setSearchQuery] = useState('')
     const [statusFilter, setStatusFilter] = useState('all')
+    const [deliveryUsers, setDeliveryUsers] = useState([])
 
     // Edit State
     const [editingTask, setEditingTask] = useState(null)
     const [formData, setFormData] = useState({
         title: '',
         description: '',
-        location_address: ''
+        location_address: '',
+        assigned_to: '',
     })
     const [isSaving, setIsSaving] = useState(false)
 
     useEffect(() => {
         fetchTasks()
+        fetchDeliveryUsers()
 
         const channel = supabase
             .channel('public:tasks')
@@ -29,18 +32,17 @@ export default function TaskList() {
                     setTasks(prev => [payload.new, ...prev])
                 } else if (payload.eventType === 'UPDATE') {
                     setTasks(prev => prev.map(task => task.id === payload.new.id ? payload.new : task))
+                } else if (payload.eventType === 'DELETE') {
+                    setTasks(prev => prev.filter(t => t.id !== payload.old.id))
                 }
             })
             .subscribe()
 
-        return () => {
-            supabase.removeChannel(channel)
-        }
+        return () => { supabase.removeChannel(channel) }
     }, [])
 
     useEffect(() => {
         let result = tasks
-
         if (searchQuery) {
             const query = searchQuery.toLowerCase()
             result = result.filter(t =>
@@ -48,11 +50,9 @@ export default function TaskList() {
                 t.location_address.toLowerCase().includes(query)
             )
         }
-
         if (statusFilter !== 'all') {
             result = result.filter(t => t.status === statusFilter)
         }
-
         setFilteredTasks(result)
     }, [tasks, searchQuery, statusFilter])
 
@@ -60,7 +60,7 @@ export default function TaskList() {
         try {
             const { data, error } = await supabase
                 .from('tasks')
-                .select(`*, assigned_to ( full_name )`)
+                .select(`*, assigned_to ( id, full_name )`)
                 .order('created_at', { ascending: false })
             if (error) throw error
             setTasks(data)
@@ -69,13 +69,26 @@ export default function TaskList() {
         }
     }
 
-    // Edit Handlers
+    const fetchDeliveryUsers = async () => {
+        try {
+            const { data, error } = await supabase
+                .from('profiles')
+                .select('id, full_name')
+                .eq('role', 'delivery')
+            if (error) throw error
+            setDeliveryUsers(data || [])
+        } catch (error) {
+            console.error('Error fetching delivery users:', error)
+        }
+    }
+
     const handleEditClick = (task) => {
         setEditingTask(task)
         setFormData({
             title: task.title,
             description: task.description || '',
-            location_address: task.location_address
+            location_address: task.location_address,
+            assigned_to: task.assigned_to?.id || task.assigned_to || '',
         })
     }
 
@@ -86,11 +99,16 @@ export default function TaskList() {
             const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(formData.location_address)}`
             const { error } = await supabase
                 .from('tasks')
-                .update({ title: formData.title, description: formData.description, location_address: formData.location_address, google_maps_url: mapsUrl })
+                .update({
+                    title: formData.title,
+                    description: formData.description,
+                    location_address: formData.location_address,
+                    google_maps_url: mapsUrl,
+                    assigned_to: formData.assigned_to || null,
+                })
                 .eq('id', editingTask.id)
             if (error) throw error
-            const updatedTask = { ...editingTask, ...formData, google_maps_url: mapsUrl }
-            setTasks(prev => prev.map(t => t.id === editingTask.id ? updatedTask : t))
+            await fetchTasks() // Refresh to get updated join data
             setEditingTask(null)
             toast.success('Task updated!')
         } catch (error) {
@@ -112,11 +130,19 @@ export default function TaskList() {
         }
     }
 
+    const getStatusStyle = (status) => {
+        if (status === 'completed') return 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+        if (status === 'in-progress') return 'bg-purple-500/10 text-purple-400 border border-purple-500/20'
+        return 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+    }
+
     return (
         <div className="w-full max-w-7xl mx-auto space-y-6 animate-fadeIn relative">
             <Toaster position="top-right" />
             <h2 className="text-2xl font-bold mb-4">Task Management
-                <span className="ml-3 text-sm font-normal px-2.5 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">{filteredTasks.length} tasks</span>
+                <span className="ml-3 text-sm font-normal px-2.5 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                    {filteredTasks.length} tasks
+                </span>
             </h2>
 
             {/* Toolbar */}
@@ -149,14 +175,13 @@ export default function TaskList() {
             {/* Task Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredTasks.map(task => (
-                    <div key={task.id} className="glass-panel p-6 group hover:border-primary/30 hover:translate-y-[-2px] hover:shadow-xl transition-all duration-300 flex flex-col h-full relative">
-
+                    <div key={task.id}
+                        className="glass-panel p-6 group hover:border-primary/30 hover:translate-y-[-2px] hover:shadow-xl transition-all duration-300 flex flex-col h-full relative"
+                        style={{ animationDelay: `${filteredTasks.indexOf(task) * 0.05}s` }}
+                    >
                         {/* Status Badge & Date */}
                         <div className="flex justify-between items-start mb-4">
-                            <span className={`px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wide
-                                ${task.status === 'completed' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
-                                    task.status === 'in-progress' ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20' :
-                                        'bg-amber-500/10 text-amber-400 border border-amber-500/20'}`}>
+                            <span className={`px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${getStatusStyle(task.status)}`}>
                                 {task.status}
                             </span>
                             <span className="flex items-center gap-1.5 text-xs text-gray-500 font-mono">
@@ -166,30 +191,18 @@ export default function TaskList() {
                         </div>
 
                         {/* Title & Desc */}
-                        <div className="pr-8"> {/* Padding for Edit Button */}
-                            <h4 className="font-bold text-lg mb-2 text-white group-hover:text-primary transition-colors line-clamp-1" title={task.title}>{task.title}</h4>
-                            <p className="text-sm text-gray-400 mb-6 line-clamp-2 min-h-[2.5em]">{task.description || 'No description provided.'}</p>
+                        <div className="pr-8">
+                            <h4 className="font-bold text-lg mb-2 text-white group-hover:text-primary transition-colors line-clamp-1" title={task.title}>
+                                {task.title}
+                            </h4>
+                            <p className="text-sm text-gray-400 mb-6 line-clamp-2 min-h-[2.5em]">
+                                {task.description || 'No description provided.'}
+                            </p>
                         </div>
 
-                        {/* Buttons */}
-                        <div className="absolute top-4 right-4 flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
-                            <button
-                                onClick={() => handleEditClick(task)}
-                                className="p-2 rounded-lg bg-white/5 hover:bg-primary hover:text-white text-gray-400 transition-all"
-                                title="Edit Task"
-                            >
-                                <Pencil size={15} />
-                            </button>
-                            <button
-                                onClick={() => handleDelete(task.id)}
-                                className="p-2 rounded-lg bg-white/5 hover:bg-red-500 hover:text-white text-gray-400 transition-all"
-                                title="Delete Task"
-                            >
-                                <Trash2 size={15} />
-                            </button>
-                        </div>
+                        {/* Action Buttons — always visible, right-aligned */}
 
-                        {/* Footer Info */}
+                        {/* Card footer: location, driver + action buttons */}
                         <div className="mt-auto border-t border-white/5 pt-4 space-y-3">
                             <div className="flex items-start gap-3 text-sm text-gray-300">
                                 <MapPin size={16} className="text-blue-400 shrink-0 mt-0.5" />
@@ -197,7 +210,54 @@ export default function TaskList() {
                             </div>
                             <div className="flex items-center gap-3 text-sm text-gray-300">
                                 <Truck size={16} className="text-purple-400 shrink-0" />
-                                <span className="truncate leading-relaxed">{task.assigned_to?.full_name || 'Unassigned'}</span>
+                                <span className="truncate leading-relaxed">
+                                    {task.assigned_to?.full_name || 'Unassigned'}
+                                </span>
+                            </div>
+
+                            {/* Edit / Delete row */}
+                            <div style={{
+                                display: 'flex', gap: '0.5rem', paddingTop: '0.5rem',
+                                borderTop: '1px solid rgba(255,255,255,0.05)', justifyContent: 'flex-end'
+                            }}>
+                                <button
+                                    onClick={() => handleEditClick(task)}
+                                    title="Edit Task"
+                                    style={{
+                                        display: 'flex', alignItems: 'center', gap: '0.4rem',
+                                        padding: '0.45rem 0.9rem',
+                                        borderRadius: '0.5rem',
+                                        border: '1px solid rgba(99,102,241,0.3)',
+                                        background: 'rgba(99,102,241,0.08)',
+                                        color: '#818cf8',
+                                        cursor: 'pointer',
+                                        fontSize: '0.8rem', fontWeight: 600,
+                                        transition: 'all 0.2s',
+                                    }}
+                                    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.2)'; e.currentTarget.style.borderColor = 'rgba(99,102,241,0.6)' }}
+                                    onMouseLeave={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.08)'; e.currentTarget.style.borderColor = 'rgba(99,102,241,0.3)' }}
+                                >
+                                    <Pencil size={13} /> Edit
+                                </button>
+                                <button
+                                    onClick={() => handleDelete(task.id)}
+                                    title="Delete Task"
+                                    style={{
+                                        display: 'flex', alignItems: 'center', gap: '0.4rem',
+                                        padding: '0.45rem 0.9rem',
+                                        borderRadius: '0.5rem',
+                                        border: '1px solid rgba(239,68,68,0.3)',
+                                        background: 'rgba(239,68,68,0.08)',
+                                        color: '#f87171',
+                                        cursor: 'pointer',
+                                        fontSize: '0.8rem', fontWeight: 600,
+                                        transition: 'all 0.2s',
+                                    }}
+                                    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.2)'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.6)' }}
+                                    onMouseLeave={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.08)'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.3)' }}
+                                >
+                                    <Trash2 size={13} /> Delete
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -212,23 +272,22 @@ export default function TaskList() {
                 </div>
             )}
 
-            {/* Edit Modal Overlay */}
+            {/* Edit Modal */}
             {editingTask && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
-                    <div
-                        className="glass-panel w-full max-w-lg p-0 overflow-hidden shadow-2xl animate-scaleIn"
-                        onClick={e => e.stopPropagation()} // Prevent closing when clicking inside
-                    >
-                        {/* Header (No X button) */}
+                    <div className="glass-panel w-full max-w-lg p-0 overflow-hidden shadow-2xl animate-scaleIn"
+                        onClick={e => e.stopPropagation()}>
+
+                        {/* Modal Header */}
                         <div className="p-6 border-b border-white/10 bg-white/5">
                             <h3 className="text-xl font-bold text-white flex items-center gap-2">
                                 <Pencil size={20} className="text-primary" />
                                 Edit Task
                             </h3>
-                            <p className="text-sm text-gray-400 mt-1">Update task details and location.</p>
+                            <p className="text-sm text-gray-400 mt-1">Update task details, location and driver assignment.</p>
                         </div>
 
-                        {/* Body */}
+                        {/* Modal Body */}
                         <div className="p-6 space-y-5">
                             <div>
                                 <label className="block text-sm font-medium text-gray-300 mb-1.5">Task Title</label>
@@ -254,6 +313,25 @@ export default function TaskList() {
                                 </div>
                             </div>
 
+                            {/* ─── Assign Driver ─── */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-300 mb-1.5">Assigned Driver</label>
+                                <div className="relative">
+                                    <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
+                                    <select
+                                        value={formData.assigned_to}
+                                        onChange={e => setFormData({ ...formData, assigned_to: e.target.value })}
+                                        className="input-field pl-10 cursor-pointer"
+                                        style={{ paddingLeft: '2.75rem', appearance: 'none' }}
+                                    >
+                                        <option value="">Unassigned</option>
+                                        {deliveryUsers.map(u => (
+                                            <option key={u.id} value={u.id}>{u.full_name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+
                             <div>
                                 <label className="block text-sm font-medium text-gray-300 mb-1.5">Description</label>
                                 <textarea
@@ -265,8 +343,8 @@ export default function TaskList() {
                             </div>
                         </div>
 
-                        {/* Footer */}
-                        <div className="p-6 border-t border-white/10 bg-white/5 flex justify-end gap-8">
+                        {/* Modal Footer */}
+                        <div className="p-6 border-t border-white/10 bg-white/5 flex justify-end gap-4">
                             <button
                                 onClick={() => setEditingTask(null)}
                                 className="btn-secondary px-6 py-2 rounded-lg text-sm"
