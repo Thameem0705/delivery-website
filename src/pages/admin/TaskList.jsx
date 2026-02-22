@@ -1,8 +1,8 @@
-
 import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabaseClient'
-import { MapPin, Truck, Search, Filter, AlertCircle, Calendar, Pencil, Trash2, User } from 'lucide-react'
+import { MapPin, Truck, Search, Filter, AlertCircle, Calendar, Pencil, Trash2, User, Plus, List, X } from 'lucide-react'
 import toast, { Toaster } from 'react-hot-toast'
+import { Link } from 'react-router-dom'
 
 export default function TaskList() {
     const [tasks, setTasks] = useState([])
@@ -10,86 +10,50 @@ export default function TaskList() {
     const [searchQuery, setSearchQuery] = useState('')
     const [statusFilter, setStatusFilter] = useState('all')
     const [deliveryUsers, setDeliveryUsers] = useState([])
-
-    // Edit State
     const [editingTask, setEditingTask] = useState(null)
-    const [formData, setFormData] = useState({
-        title: '',
-        description: '',
-        location_address: '',
-        assigned_to: '',
-    })
+    const [formData, setFormData] = useState({ title: '', description: '', location_address: '', assigned_to: '' })
     const [isSaving, setIsSaving] = useState(false)
 
     useEffect(() => {
-        fetchTasks()
-        fetchDeliveryUsers()
-
-        const channel = supabase
-            .channel('public:tasks')
+        fetchTasks(); fetchDeliveryUsers()
+        const channel = supabase.channel('public:tasks')
             .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, (payload) => {
-                if (payload.eventType === 'INSERT') {
-                    setTasks(prev => [payload.new, ...prev])
-                } else if (payload.eventType === 'UPDATE') {
-                    setTasks(prev => prev.map(task => task.id === payload.new.id ? payload.new : task))
-                } else if (payload.eventType === 'DELETE') {
-                    setTasks(prev => prev.filter(t => t.id !== payload.old.id))
-                }
-            })
-            .subscribe()
-
-        return () => { supabase.removeChannel(channel) }
+                if (payload.eventType === 'INSERT') setTasks(prev => [payload.new, ...prev])
+                else if (payload.eventType === 'UPDATE') setTasks(prev => prev.map(t => t.id === payload.new.id ? payload.new : t))
+                else if (payload.eventType === 'DELETE') setTasks(prev => prev.filter(t => t.id !== payload.old.id))
+            }).subscribe()
+        return () => supabase.removeChannel(channel)
     }, [])
 
     useEffect(() => {
         let result = tasks
         if (searchQuery) {
-            const query = searchQuery.toLowerCase()
-            result = result.filter(t =>
-                t.title.toLowerCase().includes(query) ||
-                t.location_address.toLowerCase().includes(query)
-            )
+            const q = searchQuery.toLowerCase()
+            result = result.filter(t => t.title?.toLowerCase().includes(q) || t.location_address?.toLowerCase().includes(q))
         }
-        if (statusFilter !== 'all') {
-            result = result.filter(t => t.status === statusFilter)
-        }
+        if (statusFilter !== 'all') result = result.filter(t => t.status === statusFilter)
         setFilteredTasks(result)
     }, [tasks, searchQuery, statusFilter])
 
     const fetchTasks = async () => {
         try {
-            const { data, error } = await supabase
-                .from('tasks')
-                .select(`*, assigned_to ( id, full_name )`)
-                .order('created_at', { ascending: false })
+            const { data, error } = await supabase.from('tasks').select(`*, assigned_to ( id, full_name )`).order('created_at', { ascending: false })
             if (error) throw error
             setTasks(data)
-        } catch (error) {
-            console.error('Error fetching tasks:', error)
-        }
+        } catch (e) { console.error(e) }
     }
 
     const fetchDeliveryUsers = async () => {
         try {
-            const { data, error } = await supabase
-                .from('profiles')
-                .select('id, full_name')
-                .eq('role', 'delivery')
+            const { data, error } = await supabase.from('profiles').select('id, full_name').eq('role', 'delivery')
             if (error) throw error
             setDeliveryUsers(data || [])
-        } catch (error) {
-            console.error('Error fetching delivery users:', error)
-        }
+        } catch (e) { console.error(e) }
     }
 
     const handleEditClick = (task) => {
         setEditingTask(task)
-        setFormData({
-            title: task.title,
-            description: task.description || '',
-            location_address: task.location_address,
-            assigned_to: task.assigned_to?.id || task.assigned_to || '',
-        })
+        setFormData({ title: task.title, description: task.description || '', location_address: task.location_address, assigned_to: task.assigned_to?.id || task.assigned_to || '' })
     }
 
     const handleSave = async () => {
@@ -97,25 +61,17 @@ export default function TaskList() {
         setIsSaving(true)
         try {
             const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(formData.location_address)}`
-            const { error } = await supabase
-                .from('tasks')
-                .update({
-                    title: formData.title,
-                    description: formData.description,
-                    location_address: formData.location_address,
-                    google_maps_url: mapsUrl,
-                    assigned_to: formData.assigned_to || null,
-                })
-                .eq('id', editingTask.id)
+            const { error } = await supabase.from('tasks').update({
+                title: formData.title, description: formData.description,
+                location_address: formData.location_address, google_maps_url: mapsUrl,
+                assigned_to: formData.assigned_to || null,
+            }).eq('id', editingTask.id)
             if (error) throw error
-            await fetchTasks() // Refresh to get updated join data
+            await fetchTasks()
             setEditingTask(null)
-            toast.success('Task updated!')
-        } catch (error) {
-            toast.error('Failed to update task')
-        } finally {
-            setIsSaving(false)
-        }
+            toast.success('Task updated! ✅')
+        } catch { toast.error('Failed to update task') }
+        finally { setIsSaving(false) }
     }
 
     const handleDelete = async (taskId) => {
@@ -125,45 +81,51 @@ export default function TaskList() {
             if (error) throw error
             setTasks(prev => prev.filter(t => t.id !== taskId))
             toast.success('Task deleted')
-        } catch {
-            toast.error('Failed to delete task')
-        }
+        } catch { toast.error('Failed to delete task') }
     }
 
-    const getStatusStyle = (status) => {
-        if (status === 'completed') return 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-        if (status === 'in-progress') return 'bg-purple-500/10 text-purple-400 border border-purple-500/20'
-        return 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+    const statusConfig = {
+        pending: { color: '#f59e0b', bg: 'rgba(245,158,11,0.1)', border: 'rgba(245,158,11,0.25)', label: 'Pending' },
+        'in-progress': { color: '#8b5cf6', bg: 'rgba(139,92,246,0.1)', border: 'rgba(139,92,246,0.25)', label: 'In Progress' },
+        completed: { color: '#10b981', bg: 'rgba(16,185,129,0.1)', border: 'rgba(16,185,129,0.25)', label: 'Completed' },
     }
+
+    const counts = { all: tasks.length, pending: tasks.filter(t => t.status === 'pending').length, 'in-progress': tasks.filter(t => t.status === 'in-progress').length, completed: tasks.filter(t => t.status === 'completed').length }
 
     return (
-        <div className="w-full max-w-7xl mx-auto space-y-6 animate-fadeIn relative">
-            <Toaster position="top-right" />
-            <h2 className="text-2xl font-bold mb-4">Task Management
-                <span className="ml-3 text-sm font-normal px-2.5 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-                    {filteredTasks.length} tasks
-                </span>
-            </h2>
+        <div className="page-container">
+            <Toaster position="top-right" toastOptions={{ style: { background: '#1e2942', color: '#f1f5f9', border: '1px solid rgba(255,255,255,0.1)' } }} />
 
-            {/* Toolbar */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-between bg-slate-800/30 p-4 rounded-xl border border-white/5 backdrop-blur-sm">
-                <div className="relative flex-1 max-w-md group">
-                    <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 group-focus-within:text-primary transition-colors" />
+            {/* Header */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <div className="section-icon section-icon-primary"><List size={20} color="white" /></div>
+                    <div>
+                        <h2 style={{ margin: 0, fontSize: 'clamp(1.25rem,3vw,1.75rem)' }}>
+                            Task <span className="gradient-text">Management</span>
+                        </h2>
+                        <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-muted)' }}>{filteredTasks.length} of {tasks.length} tasks</p>
+                    </div>
+                </div>
+                <Link to="/admin/create" className="btn-primary" style={{ textDecoration: 'none' }}>
+                    <Plus size={18} /> New Task
+                </Link>
+            </div>
+
+            {/* Search + Filter Bar */}
+            <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.25rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                <div style={{ position: 'relative', flex: '1', minWidth: '200px' }}>
+                    <Search size={16} style={{ position: 'absolute', left: '0.875rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-subtle)', pointerEvents: 'none' }} />
                     <input
-                        className="input-field pl-10 py-2.5 border-none bg-slate-900/50 focus:bg-slate-900 transition-all"
-                        style={{ paddingLeft: '2.5rem' }}
-                        placeholder="Search tasks by title or address..."
-                        value={searchQuery}
-                        onChange={e => setSearchQuery(e.target.value)}
+                        className="input-field" style={{ paddingLeft: '2.5rem' }}
+                        placeholder="Search tasks by title or address…"
+                        value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
                     />
                 </div>
-                <div className="flex items-center gap-2">
-                    <Filter size={18} className="text-gray-400" />
-                    <select
-                        className="bg-slate-900/50 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-gray-300 focus:outline-none focus:border-primary transition-all cursor-pointer hover:bg-slate-800"
-                        value={statusFilter}
-                        onChange={e => setStatusFilter(e.target.value)}
-                    >
+                <div style={{ position: 'relative', minWidth: '160px' }}>
+                    <Filter size={16} style={{ position: 'absolute', left: '0.875rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-subtle)', pointerEvents: 'none' }} />
+                    <select className="input-field" style={{ paddingLeft: '2.5rem', cursor: 'pointer' }}
+                        value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
                         <option value="all">All Status</option>
                         <option value="pending">Pending</option>
                         <option value="in-progress">In Progress</option>
@@ -172,191 +134,149 @@ export default function TaskList() {
                 </div>
             </div>
 
-            {/* Task Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredTasks.map(task => (
-                    <div key={task.id}
-                        className="glass-panel p-6 group hover:border-primary/30 hover:translate-y-[-2px] hover:shadow-xl transition-all duration-300 flex flex-col h-full relative"
-                        style={{ animationDelay: `${filteredTasks.indexOf(task) * 0.05}s` }}
-                    >
-                        {/* Status Badge & Date */}
-                        <div className="flex justify-between items-start mb-4">
-                            <span className={`px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${getStatusStyle(task.status)}`}>
-                                {task.status}
-                            </span>
-                            <span className="flex items-center gap-1.5 text-xs text-gray-500 font-mono">
-                                <Calendar size={12} />
-                                {new Date(task.created_at).toLocaleDateString()}
-                            </span>
-                        </div>
-
-                        {/* Title & Desc */}
-                        <div className="pr-8">
-                            <h4 className="font-bold text-lg mb-2 text-white group-hover:text-primary transition-colors line-clamp-1" title={task.title}>
-                                {task.title}
-                            </h4>
-                            <p className="text-sm text-gray-400 mb-6 line-clamp-2 min-h-[2.5em]">
-                                {task.description || 'No description provided.'}
-                            </p>
-                        </div>
-
-                        {/* Action Buttons — always visible, right-aligned */}
-
-                        {/* Card footer: location, driver + action buttons */}
-                        <div className="mt-auto border-t border-white/5 pt-4 space-y-3">
-                            <div className="flex items-start gap-3 text-sm text-gray-300">
-                                <MapPin size={16} className="text-blue-400 shrink-0 mt-0.5" />
-                                <span className="truncate leading-relaxed">{task.location_address}</span>
-                            </div>
-                            <div className="flex items-center gap-3 text-sm text-gray-300">
-                                <Truck size={16} className="text-purple-400 shrink-0" />
-                                <span className="truncate leading-relaxed">
-                                    {task.assigned_to?.full_name || 'Unassigned'}
-                                </span>
-                            </div>
-
-                            {/* Edit / Delete row */}
-                            <div style={{
-                                display: 'flex', gap: '0.5rem', paddingTop: '0.5rem',
-                                borderTop: '1px solid rgba(255,255,255,0.05)', justifyContent: 'flex-end'
-                            }}>
-                                <button
-                                    onClick={() => handleEditClick(task)}
-                                    title="Edit Task"
-                                    style={{
-                                        display: 'flex', alignItems: 'center', gap: '0.4rem',
-                                        padding: '0.45rem 0.9rem',
-                                        borderRadius: '0.5rem',
-                                        border: '1px solid rgba(99,102,241,0.3)',
-                                        background: 'rgba(99,102,241,0.08)',
-                                        color: '#818cf8',
-                                        cursor: 'pointer',
-                                        fontSize: '0.8rem', fontWeight: 600,
-                                        transition: 'all 0.2s',
-                                    }}
-                                    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.2)'; e.currentTarget.style.borderColor = 'rgba(99,102,241,0.6)' }}
-                                    onMouseLeave={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.08)'; e.currentTarget.style.borderColor = 'rgba(99,102,241,0.3)' }}
-                                >
-                                    <Pencil size={13} /> Edit
-                                </button>
-                                <button
-                                    onClick={() => handleDelete(task.id)}
-                                    title="Delete Task"
-                                    style={{
-                                        display: 'flex', alignItems: 'center', gap: '0.4rem',
-                                        padding: '0.45rem 0.9rem',
-                                        borderRadius: '0.5rem',
-                                        border: '1px solid rgba(239,68,68,0.3)',
-                                        background: 'rgba(239,68,68,0.08)',
-                                        color: '#f87171',
-                                        cursor: 'pointer',
-                                        fontSize: '0.8rem', fontWeight: 600,
-                                        transition: 'all 0.2s',
-                                    }}
-                                    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.2)'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.6)' }}
-                                    onMouseLeave={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.08)'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.3)' }}
-                                >
-                                    <Trash2 size={13} /> Delete
-                                </button>
-                            </div>
-                        </div>
-                    </div>
+            {/* Filter chips */}
+            <div className="filter-bar" style={{ marginBottom: '1.5rem', width: 'fit-content' }}>
+                {[
+                    { key: 'all', label: `All (${counts.all})` },
+                    { key: 'pending', label: `Pending (${counts.pending})` },
+                    { key: 'in-progress', label: `Active (${counts['in-progress']})` },
+                    { key: 'completed', label: `Done (${counts.completed})` },
+                ].map(({ key, label }) => (
+                    <button key={key} className={`filter-tab ${statusFilter === key ? 'active' : ''}`} onClick={() => setStatusFilter(key)}>
+                        {label}
+                    </button>
                 ))}
             </div>
 
-            {filteredTasks.length === 0 && (
-                <div className="flex flex-col items-center justify-center p-16 text-gray-500 bg-slate-800/20 rounded-2xl border border-dashed border-white/10 animate-fadeIn">
-                    <AlertCircle size={48} className="mb-4 opacity-50" />
-                    <p className="text-xl font-semibold mb-2">No tasks found</p>
-                    <p className="text-sm">Try adjusting your search or filters</p>
+            {/* Task Grid */}
+            {filteredTasks.length === 0 ? (
+                <div className="card-3d empty-state" style={{ borderStyle: 'dashed', borderColor: 'rgba(255,255,255,0.1)' }}>
+                    <div className="empty-icon"><AlertCircle size={32} color="var(--text-muted)" style={{ opacity: 0.5 }} /></div>
+                    <h3>No tasks found</h3>
+                    <p>Try adjusting your search or filters, or create a new task.</p>
+                    <Link to="/admin/create" className="btn-primary" style={{ textDecoration: 'none', marginTop: '1rem' }}><Plus size={16} /> Create Task</Link>
+                </div>
+            ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 320px), 1fr))', gap: '1.25rem' }}>
+                    {filteredTasks.map((task, i) => {
+                        const sc = statusConfig[task.status] || statusConfig.pending
+                        return (
+                            <div key={task.id} className="card-3d" style={{
+                                padding: '1.25rem', borderTop: `3px solid ${sc.color}`,
+                                display: 'flex', flexDirection: 'column', height: '100%',
+                                animation: `fadeIn 0.3s ease ${i * 0.05}s both`,
+                            }}>
+                                {/* Top row */}
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.875rem' }}>
+                                    <span style={{ padding: '0.25rem 0.7rem', borderRadius: '999px', fontSize: '0.68rem', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: sc.color, background: sc.bg, border: `1px solid ${sc.border}` }}>
+                                        {sc.label}
+                                    </span>
+                                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.72rem', color: 'var(--text-subtle)' }}>
+                                        <Calendar size={11} />{new Date(task.created_at).toLocaleDateString()}
+                                    </span>
+                                </div>
+
+                                {/* Title + desc */}
+                                <h4 style={{ margin: '0 0 0.4rem', fontWeight: 700, fontSize: '1rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={task.title}>
+                                    {task.title}
+                                </h4>
+                                <p className="line-clamp-2" style={{ color: 'var(--text-muted)', fontSize: '0.85rem', lineHeight: 1.6, minHeight: '2.7em', flex: 1, marginBottom: '1rem' }}>
+                                    {task.description || 'No description provided.'}
+                                </p>
+
+                                {/* Details */}
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', padding: '0.875rem', background: 'rgba(0,0,0,0.25)', borderRadius: '0.75rem', marginBottom: '1rem', border: '1px solid rgba(255,255,255,0.05)' }}>
+                                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.6rem' }}>
+                                        <MapPin size={14} color="var(--accent-blue)" style={{ flexShrink: 0, marginTop: '2px' }} />
+                                        <span style={{ fontSize: '0.825rem', color: 'var(--text-muted)', lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{task.location_address}</span>
+                                    </div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                                        <Truck size={14} color="var(--accent-purple)" style={{ flexShrink: 0 }} />
+                                        <span style={{ fontSize: '0.825rem', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{task.assigned_to?.full_name || 'Unassigned'}</span>
+                                    </div>
+                                </div>
+
+                                {/* Actions */}
+                                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                    <button onClick={() => handleEditClick(task)} style={{
+                                        flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem',
+                                        height: '38px', borderRadius: '0.625rem', border: '1px solid rgba(99,102,241,0.3)',
+                                        background: 'rgba(99,102,241,0.08)', color: '#818cf8', cursor: 'pointer',
+                                        fontSize: '0.8rem', fontWeight: 600, transition: 'all 0.2s',
+                                    }}
+                                        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.2)'; e.currentTarget.style.borderColor = 'rgba(99,102,241,0.6)' }}
+                                        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(99,102,241,0.08)'; e.currentTarget.style.borderColor = 'rgba(99,102,241,0.3)' }}
+                                    >
+                                        <Pencil size={13} /> Edit
+                                    </button>
+                                    <button onClick={() => handleDelete(task.id)} style={{
+                                        flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem',
+                                        height: '38px', borderRadius: '0.625rem', border: '1px solid rgba(239,68,68,0.3)',
+                                        background: 'rgba(239,68,68,0.08)', color: '#f87171', cursor: 'pointer',
+                                        fontSize: '0.8rem', fontWeight: 600, transition: 'all 0.2s',
+                                    }}
+                                        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.2)'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.6)' }}
+                                        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.08)'; e.currentTarget.style.borderColor = 'rgba(239,68,68,0.3)' }}
+                                    >
+                                        <Trash2 size={13} /> Delete
+                                    </button>
+                                </div>
+                            </div>
+                        )
+                    })}
                 </div>
             )}
 
             {/* Edit Modal */}
             {editingTask && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
-                    <div className="glass-panel w-full max-w-lg p-0 overflow-hidden shadow-2xl animate-scaleIn"
-                        onClick={e => e.stopPropagation()}>
-
-                        {/* Modal Header */}
-                        <div className="p-6 border-b border-white/10 bg-white/5">
-                            <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                                <Pencil size={20} className="text-primary" />
-                                Edit Task
-                            </h3>
-                            <p className="text-sm text-gray-400 mt-1">Update task details, location and driver assignment.</p>
-                        </div>
-
-                        {/* Modal Body */}
-                        <div className="p-6 space-y-5">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-300 mb-1.5">Task Title</label>
-                                <input
-                                    type="text"
-                                    value={formData.title}
-                                    onChange={e => setFormData({ ...formData, title: e.target.value })}
-                                    className="input-field"
-                                />
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-300 mb-1.5">Location Address</label>
-                                <div className="relative">
-                                    <MapPin className="absolute left-3 top-3 text-gray-500" size={18} />
-                                    <input
-                                        type="text"
-                                        value={formData.location_address}
-                                        onChange={e => setFormData({ ...formData, location_address: e.target.value })}
-                                        className="input-field pl-10"
-                                        placeholder="Enter full address"
-                                    />
+                <div style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(8px)', animation: 'fadeIn 0.2s ease both' }}>
+                    <div className="glass-panel" style={{ width: '100%', maxWidth: '520px', padding: 0, overflow: 'hidden', animation: 'scaleIn 0.25s cubic-bezier(0.2,0.8,0.2,1) both' }} onClick={e => e.stopPropagation()}>
+                        {/* Modal header */}
+                        <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.03)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                <div style={{ padding: '0.5rem', background: 'var(--primary-light)', borderRadius: '0.625rem', border: '1px solid rgba(99,102,241,0.25)', display: 'flex' }}>
+                                    <Pencil size={18} color="var(--primary)" />
+                                </div>
+                                <div>
+                                    <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 700 }}>Edit Task</h3>
+                                    <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-muted)' }}>Update task details and assignment</p>
                                 </div>
                             </div>
-
-                            {/* ─── Assign Driver ─── */}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-300 mb-1.5">Assigned Driver</label>
-                                <div className="relative">
-                                    <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
-                                    <select
-                                        value={formData.assigned_to}
-                                        onChange={e => setFormData({ ...formData, assigned_to: e.target.value })}
-                                        className="input-field pl-10 cursor-pointer"
-                                        style={{ paddingLeft: '2.75rem', appearance: 'none' }}
-                                    >
+                            <button onClick={() => setEditingTask(null)} className="btn-icon"><X size={18} /></button>
+                        </div>
+                        {/* Modal body */}
+                        <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                            <div className="form-group">
+                                <label>Task Title</label>
+                                <input type="text" className="input-field" value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} placeholder="Task title" />
+                            </div>
+                            <div className="form-group">
+                                <label>Delivery Address</label>
+                                <div style={{ position: 'relative' }}>
+                                    <MapPin size={15} style={{ position: 'absolute', left: '0.875rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-subtle)', pointerEvents: 'none' }} />
+                                    <input type="text" className="input-field" style={{ paddingLeft: '2.5rem' }} value={formData.location_address} onChange={e => setFormData({ ...formData, location_address: e.target.value })} placeholder="Full address" />
+                                </div>
+                            </div>
+                            <div className="form-group">
+                                <label>Assigned Driver</label>
+                                <div style={{ position: 'relative' }}>
+                                    <User size={15} style={{ position: 'absolute', left: '0.875rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-subtle)', pointerEvents: 'none' }} />
+                                    <select className="input-field" style={{ paddingLeft: '2.5rem', cursor: 'pointer' }} value={formData.assigned_to} onChange={e => setFormData({ ...formData, assigned_to: e.target.value })}>
                                         <option value="">Unassigned</option>
-                                        {deliveryUsers.map(u => (
-                                            <option key={u.id} value={u.id}>{u.full_name}</option>
-                                        ))}
+                                        {deliveryUsers.map(u => <option key={u.id} value={u.id}>{u.full_name}</option>)}
                                     </select>
                                 </div>
                             </div>
-
-                            <div>
-                                <label className="block text-sm font-medium text-gray-300 mb-1.5">Description</label>
-                                <textarea
-                                    value={formData.description}
-                                    onChange={e => setFormData({ ...formData, description: e.target.value })}
-                                    className="input-field min-h-[100px] resize-none"
-                                    placeholder="Add details..."
-                                />
+                            <div className="form-group">
+                                <label>Description</label>
+                                <textarea className="input-field" value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} placeholder="Add details or special instructions…" rows={3} />
                             </div>
                         </div>
-
-                        {/* Modal Footer */}
-                        <div className="p-6 border-t border-white/10 bg-white/5 flex justify-end gap-4">
-                            <button
-                                onClick={() => setEditingTask(null)}
-                                className="btn-secondary px-6 py-2 rounded-lg text-sm"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                onClick={handleSave}
-                                disabled={isSaving}
-                                className="btn-primary px-8 py-2 text-sm"
-                            >
-                                {isSaving ? 'Saving...' : 'Save Changes'}
+                        {/* Modal footer */}
+                        <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.02)', display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+                            <button onClick={() => setEditingTask(null)} className="btn-secondary">Cancel</button>
+                            <button onClick={handleSave} disabled={isSaving} className="btn-primary">
+                                {isSaving ? <><div className="spinner" style={{ width: '16px', height: '16px' }} /> Saving…</> : 'Save Changes'}
                             </button>
                         </div>
                     </div>

@@ -182,4 +182,38 @@ create policy "Admins can update permission requests"
     auth.uid() in (select id from profiles where role = 'admin')
   );
 
+-- ══════════════════════════════════════════════
+-- FORGOT PASSWORD / RESET BY PHONE NUMBER
+-- ══════════════════════════════════════════════
+-- Run this in Supabase Dashboard → SQL Editor
 
+create or replace function public.reset_password_by_phone(
+  p_phone text,
+  p_new_password text
+)
+returns json
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+declare
+  v_user_id uuid;
+begin
+  select id into v_user_id
+  from public.profiles
+  where phone_number = p_phone
+  limit 1;
+
+  if v_user_id is null then
+    return json_build_object('success', false, 'message', 'Mobile number not registered');
+  end if;
+
+  update auth.users
+  set encrypted_password = extensions.crypt(p_new_password, extensions.gen_salt('bf'))
+  where id = v_user_id;
+
+  return json_build_object('success', true, 'message', 'Password updated successfully');
+end;
+$$;
+
+grant execute on function public.reset_password_by_phone(text, text) to anon, authenticated;
