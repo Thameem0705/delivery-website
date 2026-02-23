@@ -1,18 +1,19 @@
-
-import { useState, useCallback } from 'react'
+import { useState, useCallback, Suspense, lazy } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import ProtectedRoute from './components/ProtectedRoute'
 import Layout from './components/Layout'
 import SplashScreen from './components/SplashScreen'
-import Login from './pages/Login'
-import AdminStats from './pages/admin/AdminStats'
-import TaskList from './pages/admin/TaskList'
-import CreateTask from './pages/admin/CreateTask'
-import DeliveryUsers from './pages/admin/DeliveryUsers'
-import AdminPermissions from './pages/admin/AdminPermissions'
-import DeliveryDashboard from './pages/DeliveryDashboard'
-import MyPermissions from './pages/delivery/MyPermissions'
+import LoadingOverlay from './components/LoadingOverlay'
+
+const Login = lazy(() => import('./pages/Login'))
+const AdminStats = lazy(() => import('./pages/admin/AdminStats'))
+const TaskList = lazy(() => import('./pages/admin/TaskList'))
+const CreateTask = lazy(() => import('./pages/admin/CreateTask'))
+const DeliveryUsers = lazy(() => import('./pages/admin/DeliveryUsers'))
+const AdminPermissions = lazy(() => import('./pages/admin/AdminPermissions'))
+const DeliveryDashboard = lazy(() => import('./pages/DeliveryDashboard'))
+const MyPermissions = lazy(() => import('./pages/delivery/MyPermissions'))
 
 function App() {
   const [splashDone, setSplashDone] = useState(false)
@@ -24,31 +25,33 @@ function App() {
       {splashDone && (
         <AuthProvider>
           <BrowserRouter>
-            <Routes>
-              <Route path="/login" element={<Login />} />
+            <Suspense fallback={<LoadingOverlay message="Loading page..." />}>
+              <Routes>
+                <Route path="/login" element={<Login />} />
 
-              <Route element={<ProtectedRoute />}>
-                <Route element={<Layout />}>
-                  <Route path="/" element={<DashboardRedirect />} />
+                <Route element={<ProtectedRoute />}>
+                  <Route element={<Layout />}>
+                    <Route path="/" element={<DashboardRedirect />} />
 
-                  <Route element={<ProtectedRoute requiredRole="admin" />}>
-                    <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
-                    <Route path="/admin/dashboard" element={<AdminStats />} />
-                    <Route path="/admin/tasks" element={<TaskList />} />
-                    <Route path="/admin/create" element={<CreateTask />} />
-                    <Route path="/admin/users" element={<DeliveryUsers />} />
-                    <Route path="/admin/permissions" element={<AdminPermissions />} />
-                  </Route>
+                    <Route element={<ProtectedRoute requiredRole="admin" />}>
+                      <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
+                      <Route path="/admin/dashboard" element={<AdminStats />} />
+                      <Route path="/admin/tasks" element={<TaskList />} />
+                      <Route path="/admin/create" element={<CreateTask />} />
+                      <Route path="/admin/users" element={<DeliveryUsers />} />
+                      <Route path="/admin/permissions" element={<AdminPermissions />} />
+                    </Route>
 
-                  <Route element={<ProtectedRoute requiredRole="delivery" />}>
-                    <Route path="/delivery" element={<DeliveryDashboard />} />
-                    <Route path="/delivery/permissions" element={<MyPermissions />} />
+                    <Route element={<ProtectedRoute requiredRole="delivery" />}>
+                      <Route path="/delivery" element={<DeliveryDashboard />} />
+                      <Route path="/delivery/permissions" element={<MyPermissions />} />
+                    </Route>
                   </Route>
                 </Route>
-              </Route>
 
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            </Suspense>
           </BrowserRouter>
         </AuthProvider>
       )}

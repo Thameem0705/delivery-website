@@ -17,10 +17,15 @@ export default function TaskList() {
     useEffect(() => {
         fetchTasks(); fetchDeliveryUsers()
         const channel = supabase.channel('public:tasks')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, (payload) => {
-                if (payload.eventType === 'INSERT') setTasks(prev => [payload.new, ...prev])
-                else if (payload.eventType === 'UPDATE') setTasks(prev => prev.map(t => t.id === payload.new.id ? payload.new : t))
-                else if (payload.eventType === 'DELETE') setTasks(prev => prev.filter(t => t.id !== payload.old.id))
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, async (payload) => {
+                if (payload.eventType === 'DELETE') {
+                    setTasks(prev => prev.filter(t => t.id !== payload.old.id))
+                    return
+                }
+                const { data } = await supabase.from('tasks').select(`*, assigned_to ( id, full_name )`).eq('id', payload.new.id).single()
+                if (!data) return
+                if (payload.eventType === 'INSERT') setTasks(prev => [data, ...prev])
+                else if (payload.eventType === 'UPDATE') setTasks(prev => prev.map(t => t.id === data.id ? data : t))
             }).subscribe()
         return () => supabase.removeChannel(channel)
     }, [])
@@ -230,7 +235,7 @@ export default function TaskList() {
             {/* Edit Modal */}
             {editingTask && (
                 <div style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem', background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(8px)', animation: 'fadeIn 0.2s ease both' }}>
-                    <div className="glass-panel" style={{ width: '100%', maxWidth: '520px', padding: 0, overflow: 'hidden', animation: 'scaleIn 0.25s cubic-bezier(0.2,0.8,0.2,1) both' }} onClick={e => e.stopPropagation()}>
+                    <div className="glass-panel" style={{ width: '100%', maxWidth: '520px', padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', maxHeight: '90vh', animation: 'scaleIn 0.25s cubic-bezier(0.2,0.8,0.2,1) both' }} onClick={e => e.stopPropagation()}>
                         {/* Modal header */}
                         <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.03)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -245,7 +250,7 @@ export default function TaskList() {
                             <button onClick={() => setEditingTask(null)} className="btn-icon"><X size={18} /></button>
                         </div>
                         {/* Modal body */}
-                        <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                        <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem', overflowY: 'auto' }}>
                             <div className="form-group">
                                 <label>Task Title</label>
                                 <input type="text" className="input-field" value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} placeholder="Task title" />
