@@ -1,0 +1,91 @@
+# Delivery Site Architecture & Workflow
+
+## Overview
+The Delivery Site is a Single Page Application (SPA) built with React and Vite, utilizing Supabase as its Backend-as-a-Service (BaaS) for PostgreSQL database storage and authentication. It features a strict Role-Based Access Control (RBAC) system supporting exactly two roles: `admin` and `delivery`.
+
+## Tech Stack & Specifications
+- **Frontend Core:** React 19, Vite
+- **Routing:** React Router DOM v7 (with `React.lazy` for code splitting and performance optimization)
+- **Styling UI:** Vanilla CSS ([index.css](file:///c:/delivery%20site/src/index.css)) for styling, `lucide-react` for iconography
+- **Backend/Database:** Supabase
+  - **Auth:** Supabase Auth (Supporting Email/Password, trigger-based profile creation, and custom RPC phone-number password resets).
+  - **Database:** PostgreSQL with Row Level Security (RLS).
+  - **Storage:** Supabase Storage (public bucket `profile-photos` for avatars).
+- **Deployment:** Configured for Vercel deployment ([vercel.json](file:///c:/delivery%20site/vercel.json) rewrite rules).
+
+## Project Structure
+```text
+/src
+  ├── assets/          # Static assets like images
+  ├── components/      # Reusable UI components (Layout, ProtectedRoute, SplashScreen, LoadingOverlay)
+  ├── context/         # React Context providers (AuthContext.jsx handles session & role state)
+  ├── lib/             # Third-party integrations (supabaseClient.js)
+  ├── pages/           # Page or view components
+  │   ├── admin/       # Admin-specific pages (Dashboard/Stats, Tasks, Users, Permissions)
+  │   └── delivery/    # Delivery-specific pages (MyPermissions)
+  ├── App.jsx          # Main application routing and lazy-loaded routes
+  ├── main.jsx         # React application entry point
+  └── index.css        # Global vanilla CSS styling rules
+```
+
+## Workflows
+
+### 1. Authentication & Routing Workflow
+```mermaid
+graph TD
+    A[User visits Site] --> B{Has Active Session?}
+    B -- Yes --> C[AuthContext fetches profile & role]
+    B -- No --> D[Redirect to /login]
+    
+    C --> E{Role Check}
+    E -- admin --> F[Redirect to /admin/dashboard]
+    E -- delivery --> G[Redirect to /delivery]
+    
+    F --> H[Admin Route Wrapper]
+    H --> I[Admin Views: Stats, Tasks, Users...]
+    
+    G --> J[Delivery Route Wrapper]
+    J --> K[Delivery Views: Dashboard, MyPermissions]
+```
+
+### 2. Database Entity Relationship (ER) Diagram
+```mermaid
+erDiagram
+    PROFILES {
+        uuid id PK
+        string email
+        string username
+        string role "admin or delivery"
+        string full_name
+        string phone_number
+        string avatar_url
+    }
+    TASKS {
+        uuid id PK
+        string title
+        string description
+        string location_address
+        float latitude
+        float longitude
+        string status "pending or completed"
+        uuid assigned_to FK "Profiles"
+        uuid created_by FK "Profiles"
+    }
+    PERMISSION_REQUESTS {
+        uuid id PK
+        uuid user_id FK "Profiles"
+        string type
+        string message
+        string status "pending, approved, denied"
+    }
+
+    PROFILES ||--o{ TASKS : "assigned_to (performs task)"
+    PROFILES ||--o{ TASKS : "created_by (creates task)"
+    PROFILES ||--o{ PERMISSION_REQUESTS : "makes request"
+```
+
+## Key Architectural Decisions
+1. **Role-Based Access Control (RBAC):** The frontend strictly enforces access using the [ProtectedRoute](file:///c:/delivery%20site/src/components/ProtectedRoute.jsx#6-49) component, evaluating `profile.role`. The backend strictly enforces this via PostgreSQL Row Level Security (RLS), meaning even if the UI is bypassed, delivery drivers cannot manipulate admin data.
+2. **Centralized Auth State:** [AuthContext.jsx](file:///c:/delivery%20site/src/context/AuthContext.jsx) acts as the single source of truth for the user's logged-in status, fetching their Supabase profile mapping on load and listening to real-time auth state changes.
+3. **Lazy Loading Routes:** By implementing `React.lazy()` for route components in [App.jsx](file:///c:/delivery%20site/src/App.jsx), the app creates smaller initial JavaScript bundles. The admin panel logic is never downloaded by the browser of a delivery user.
+4. **Trigger-Based Data Population:** A PostgreSQL trigger (`handle_new_user()`) automatically creates a `public.profiles` row when a user signs up on `auth.users`, automatically mapping custom metadata directly from the signup payload.
