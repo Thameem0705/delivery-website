@@ -553,10 +553,24 @@ label {
   }
 }
 
-@media (min-width: 481px) and (max-width: 768px) {
+@media (min-width: 481px) and (max-width: 868px) {
   .stats-grid {
-    grid-template-columns: repeat(3, 1fr);
-    gap: 0.75rem;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+}
+
+/* ═══════════════════════════════════════
+   UTILITIES
+═══════════════════════════════════════ */
+.flex-wrap-mobile {
+  display: flex;
+  flex-wrap: nowrap;
+}
+
+@media (max-width: 640px) {
+  .flex-wrap-mobile {
+    flex-wrap: wrap;
   }
 }
 

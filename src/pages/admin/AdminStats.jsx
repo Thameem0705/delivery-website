@@ -158,7 +158,7 @@ export default function AdminStats() {
                                 <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-muted)' }}>Overall delivery performance</p>
                             </div>
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', flexWrap: 'wrap', justifyContent: 'center' }}>
                             <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
                                 <RingChart percentage={loading ? 0 : completionRate} size={100} strokeWidth={9} />
                                 <div style={{ position: 'absolute', textAlign: 'center' }}>

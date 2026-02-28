@@ -140,7 +140,7 @@ export default function TaskList() {
             </div>
 
             {/* Filter chips */}
-            <div className="filter-bar" style={{ marginBottom: '1.5rem', width: 'fit-content' }}>
+            <div className="filter-bar flex-wrap-mobile" style={{ marginBottom: '1.5rem', width: 'fit-content', gap: '0.5rem' }}>
                 {[
                     { key: 'all', label: `All (${counts.all})` },
                     { key: 'pending', label: `Pending (${counts.pending})` },

@@ -334,14 +334,16 @@ export default function DeliveryUsers() {
                     <div className="glass-panel w-full max-w-2xl max-h-[90vh] overflow-y-auto animate-scaleIn"
                         style={{ padding: 0 }} onClick={e => e.stopPropagation()}>
 
-                        <div style={{ padding: '1.5rem', borderBottom: '1px solid rgba(255,255,255,0.08)', background: 'linear-gradient(135deg, rgba(99,102,241,0.1), rgba(139,92,246,0.05))', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                            <div style={{ width: '3.5rem', height: '4.2rem', borderRadius: '8px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)', flexShrink: 0, background: 'rgba(99,102,241,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.4rem', fontWeight: 900, color: 'white' }}>
-                                {reportUser.avatar_url ? <img src={reportUser.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top' }} /> : (reportUser.full_name || '?').charAt(0).toUpperCase()}
-                            </div>
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.7rem', color: '#818cf8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em' }}><BarChart2 size={14} /> Delivery Report</div>
-                                <h3 style={{ margin: '0.15rem 0 0', fontSize: '1.2rem', fontWeight: 800, color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{reportUser.full_name}</h3>
-                                <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-muted)' }}>@{reportUser.username}</p>
+                        <div style={{ padding: '1.5rem', borderBottom: '1px solid rgba(255,255,255,0.08)', background: 'linear-gradient(135deg, rgba(99,102,241,0.1), rgba(139,92,246,0.05))', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: 1, minWidth: 200 }}>
+                                <div style={{ width: '3.5rem', height: '4.2rem', borderRadius: '8px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)', flexShrink: 0, background: 'rgba(99,102,241,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.4rem', fontWeight: 900, color: 'white' }}>
+                                    {reportUser.avatar_url ? <img src={reportUser.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top' }} /> : (reportUser.full_name || '?').charAt(0).toUpperCase()}
+                                </div>
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.7rem', color: '#818cf8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em' }}><BarChart2 size={14} /> Delivery Report</div>
+                                    <h3 style={{ margin: '0.15rem 0 0', fontSize: '1.2rem', fontWeight: 800, color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{reportUser.full_name}</h3>
+                                    <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-muted)' }}>@{reportUser.username}</p>
+                                </div>
                             </div>
                             <button onClick={closeReport} style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '0.5rem', padding: '0.5rem', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex' }}><X size={18} /></button>
                         </div>
